@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeedTest Pro - Advanced Network Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00c853;
+            --primary-light: #69f0ae;
+            --secondary: #2979ff;
+            --danger: #ff5252;
+            --warning: #ffd740;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e0e0e0;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-hover: 0 8px 30px rgba(0,0,0,0.12);
+            --glass: rgba(255,255,255,0.85);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f1419;
+            --card-bg: #1a1f2e;
+            --text: #e0e0e0;
+            --text-light: #8892b0;
+            --border: #2d3748;
+            --shadow: 0 4px 20px rgba(0,0,0,0.3);
+            --glass: rgba(26,31,46,0.9);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--card-bg);
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--text);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .card-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* Speed Test Main Card */
+        .speed-test-card {
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 30px;
+        }
+
+        .gauge-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 180deg,
+                var(--primary) 0deg,
+                var(--secondary) 90deg,
+                var(--warning) 135deg,
+                var(--danger) 180deg
+            );
+            mask: radial-gradient(transparent 60%, black 61%);
+            -webkit-mask: radial-gradient(transparent 60%, black 61%);
+            opacity: 0.2;
+        }
+
+        .gauge-fill {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 180deg,
+                transparent 0deg,
+                var(--primary) var(--fill-angle, 0deg),
+                transparent var(--fill-angle, 0deg)
+            );
+            mask: radial-gradient(transparent 60%, black 61%);
+            -webkit-mask: radial-gradient(transparent 60%, black 61%);
+            transition: all 0.1s ease;
+        }
+
+        .gauge-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+        }
+
+        .speed-value {
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .speed-unit {
+            font-size: 24px;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
+        .speed-label {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .needle {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 4px;
+            height: 45%;
+            background: linear-gradient(to top, var(--danger), var(--warning));
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(-90deg);
+            border-radius: 2px;
+            transition: transform 0.1s ease;
+            z-index: 5;
+        }
+
+        .needle::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            background: var(--card-bg);
+            border: 3px solid var(--danger);
+            border-radius: 50%;
+        }
+
+        .test-phase {
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .phase-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .main-button {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 40px rgba(0,200,83,0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 50px rgba(0,200,83,0.4);
+        }
+
+        .main-button:active {
+            transform: scale(0.95);
+        }
+
+        .main-button.testing {
+            background: linear-gradient(135deg, var(--danger), #ff1744);
+            box-shadow: 0 10px 40px rgba(255,82,82,0.3);
+        }
+
+        .main-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .main-button:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-box {
+            background: var(--bg);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        /* Server Selection */
+        .server-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: -10px;
+            padding: 10px;
+        }
+
+        .server-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: var(--bg);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .server-item:hover {
+            background: var(--card-bg);
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .server-item.active {
+            background: linear-gradient(135deg, rgba(0,200,83,0.1), rgba(41,121,255,0.1));
+            border-color: var(--primary);
+        }
+
+        .server-flag {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 15px;
+        }
+
+        .server-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .server-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .server-meta {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .server-load {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            background: var(--bg);
+        }
+
+        .server-load.low { color: var(--primary); }
+        .server-load.medium { color: var(--warning); }
+        .server-load.high { color: var(--danger); }
+
+        /* Graph */
+        .graph-container {
+            height: 200px;
+            position: relative;
+            margin-top: 20px;
+            background: var(--bg);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .graph-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100vh;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(0,0,0,0.1);
+            border-left: 1px solid var(--border);
+        }
+
+        .control-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .panel-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .close-panel {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        .close-panel:hover {
+            background: var(--danger);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .control-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .control-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .control-desc {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-group input, .input-group select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .range-slider {
+            width: 100%;
+            margin: 10px 0;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .range-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(0,200,83,0.5);
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--border);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .switch.active {
+            background: var(--primary);
+        }
+
+        .switch-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .switch.active .switch-thumb {
+            transform: translateX(24px);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .preset-btn {
+            padding: 12px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: var(--text);
+        }
+
+        .preset-btn:hover {
+            border-color: var(--primary);
+            background: rgba(0,200,83,0.05);
+        }
+
+        .preset-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* History */
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: var(--bg);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .history-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--primary);
+        }
+
+        .history-item:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow);
+        }
+
+        .history-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .history-server {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .history-stats {
+            text-align: right;
+        }
+
+        .history-speed {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .history-meta {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .delete-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Alerts */
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-hover);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--warning);
+        }
+
+        .alert.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .alert.error { border-left-color: var(--danger); }
+        .alert.success { border-left-color: var(--primary); }
+
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: var(--bg);
+        }
+
+        .alert.error .alert-icon { color: var(--danger); }
+        .alert.success .alert-icon { color: var(--primary); }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gauge-container {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .speed-value {
+                font-size: 48px;
+            }
+            
+            .control-panel {
+                width: 100%;
+            }
+            
+            .main-button {
+                width: 150px;
+                height: 150px;
+                font-size: 18px;
+            }
+        }
+
+        /* Animations */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+
+        /* ISP Info */
+        .isp-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0,200,83,0.05), rgba(41,121,255,0.05));
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .isp-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+        }
+
+        .isp-details h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .isp-details p {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .performance-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .performance-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Network Mode Tags */
+        .network-tags {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .network-tag {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+        }
+
+        .network-tag:hover {
+            border-color: var(--primary);
+        }
+
+        .network-tag.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Result Summary */
+        .result-summary {
+            display: none;
+            background: linear-gradient(135deg, rgba(0,200,83,0.1), rgba(41,121,255,0.1));
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .result-summary.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .rating {
+            font-size: 48px;
+            margin: 20px 0;
+        }
+
+        .rating-text {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .rating.excellent { color: var(--primary); }
+        .rating.good { color: var(--secondary); }
+        .rating.poor { color: var(--danger); }
+
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .share-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .share-btn.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .share-btn.secondary {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Loading Animation */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        /* IP Display */
+        .ip-display {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            font-size: 13px;
+            color: var(--text-light);
+            z-index: 100;
+        }
+
+        .ip-display strong {
+            color: var(--text);
+            margin-left: 5px;
+        }
+
+        /* Fullscreen */
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Particles -->
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Alert Container -->
+    <div class="alert" id="alert">
+        <div class="alert-icon">⚠️</div>
+        <div>
+            <div style="font-weight: 600;" id="alert-title">Warning</div>
+            <div style="font-size: 14px; color: var(--text-light);" id="alert-message">Message</div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay" onclick="closeControlPanel()"></div>
+
+    <!-- Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-header">
+            <div class="panel-title">⚙️ Control Panel</div>
+            <button class="close-panel" onclick="closeControlPanel()">✕</button>
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Network Mode</label>
+            <p class="control-desc">Select simulated network type</p>
+            <div class="network-tags" id="networkModes">
+                <span class="network-tag active" data-mode="fiber">Fiber</span>
+                <span class="network-tag" data-mode="5g">5G</span>
+                <span class="network-tag" data-mode="4g">4G LTE</span>
+                <span class="network-tag" data-mode="3g">3G</span>
+                <span class="network-tag" data-mode="satellite">Satellite</span>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Speed Range (Mbps)</label>
+            <div class="input-group">
+                <input type="number" id="minSpeed" placeholder="Min" value="50">
+                <input type="number" id="maxSpeed" placeholder="Max" value="1000">
+            </div>
+            <input type="range" class="range-slider" id="speedRange" min="1" max="2000" value="500">
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Ping Range (ms)</label>
+            <div class="input-group">
+                <input type="number" id="minPing" placeholder="Min" value="1">
+                <input type="number" id="maxPing" placeholder="Max" value="50">
+            </div>
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Test Duration (seconds)</label>
+            <input type="range" class="range-slider" id="testDuration" min="5" max="60" value="15">
+            <p style="text-align: center; margin-top: 5px; color: var(--text-light);">
+                <span id="durationValue">15</span>s
+            </p>
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Simulation Options</label>
+            
+            <div class="toggle-switch">
+                <span>Random Mode</span>
+                <div class="switch active" id="randomMode" onclick="toggleSwitch(this)">
+                    <div class="switch-thumb"></div>
+                </div>
+            </div>
+
+            <div class="toggle-switch">
+                <span>Unstable Connection</span>
+                <div class="switch" id="unstableMode" onclick="toggleSwitch(this)">
+                    <div class="switch-thumb"></div>
+                </div>
+            </div>
+
+            <div class="toggle-switch">
+                <span>Packet Loss</span>
+                <div class="switch" id="packetLoss" onclick="toggleSwitch(this)">
+                    <div class="switch-thumb"></div>
+                </div>
+            </div>
+
+            <div class="toggle-switch">
+                <span>Weather Impact</span>
+                <div class="switch" id="weatherImpact" onclick="toggleSwitch(this)">
+                    <div class="switch-thumb"></div>
+                </div>
+            </div>
+
+            <div class="toggle-switch">
+                <span>Peak Hours</span>
+                <div class="switch" id="peakHours" onclick="toggleSwitch(this)">
+                    <div class="switch-thumb"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Presets</label>
+            <div class="preset-buttons">
+                <button class="preset-btn active" onclick="loadPreset('gaming')">🎮 Gaming</button>
+                <button class="preset-btn" onclick="loadPreset('streaming')">📺 Streaming</button>
+                <button class="preset-btn" onclick="loadPreset('slow')">🐌 Slow</button>
+                <button class="preset-btn" onclick="loadPreset('enterprise')">🏢 Enterprise</button>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Packet Loss %</label>
+            <input type="range" class="range-slider" id="packetLossRate" min="0" max="20" value="0">
+            <p style="text-align: center; margin-top: 5px; color: var(--text-light);">
+                <span id="packetLossValue">0</span>%
+            </p>
+        </div>
+
+        <button class="share-btn primary" style="width: 100%; margin-top: 20px;" onclick="saveCustomPreset()">
+            💾 Save Custom Preset
+        </button>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <span>SpeedTest Pro</span>
+            </div>
+            <div class="header-controls">
+                <button class="btn-icon" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+                <button class="btn-icon" onclick="toggleSound()" title="Toggle Sound">🔊</button>
+                <button class="btn-icon" onclick="openControlPanel()" title="Control Panel">⚙️</button>
+                <button class="btn-icon" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <!-- Main Speed Test Card -->
+                <div class="card speed-test-card">
+                    <div class="gauge-container">
+                        <div class="gauge-bg"></div>
+                        <div class="gauge-fill" id="gaugeFill"></div>
+                        <div class="needle" id="needle"></div>
+                        <div class="gauge-center">
+                            <div class="speed-value" id="speedValue">0.0</div>
+                            <div class="speed-unit" id="speedUnit">Mbps</div>
+                            <div class="speed-label" id="speedLabel">Download</div>
+                        </div>
+                    </div>
+
+                    <div class="test-phase" id="testPhase">
+                        <span class="phase-indicator"></span>
+                        Ready to test
+                    </div>
+
+                    <button class="main-button" id="mainButton" onclick="toggleTest()">
+                        GO
+                    </button>
+
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Ping</div>
+                            <div class="stat-value" id="pingValue">--</div>
+                            <div class="stat-unit">ms</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Download</div>
+                            <div class="stat-value" id="downloadValue">--</div>
+                            <div class="stat-unit">Mbps</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Upload</div>
+                            <div class="stat-value" id="uploadValue">--</div>
+                            <div class="stat-unit">Mbps</div>
+                        </div>
+                    </div>
+
+                    <div class="result-summary" id="resultSummary">
+                        <div class="rating" id="ratingEmoji">🚀</div>
+                        <div class="rating-text" id="ratingText">Excellent!</div>
+                        <p style="color: var(--text-light); margin-bottom: 20px;">
+                            Your connection is <span id="performancePercent">95%</span> of expected speed
+                        </p>
+                        <div class="share-buttons">
+                            <button class="share-btn primary" onclick="copyResults()">
+                                📋 Copy Results
+                            </button>
+                            <button class="share-btn secondary" onclick="exportResult()">
+                                💾 Export JSON
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Graph -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-title">📊 Real-time Performance</div>
+                    <div class="graph-container">
+                        <canvas class="graph-canvas" id="speedGraph"></canvas>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 13px; color: var(--text-light);">
+                        <span>Peak: <strong id="peakSpeed">0</strong> Mbps</span>
+                        <span>Average: <strong id="avgSpeed">0</strong> Mbps</span>
+                        <span>Stability: <strong id="stabilityRating">--</strong></span>
+                    </div>
+                </div>
+
+                <!-- ISP Info -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-title">🏢 ISP & Plan Information</div>
+                    <div class="isp-info">
+                        <div class="isp-icon">🌐</div>
+                        <div class="isp-details" style="flex: 1;">
+                            <h3 id="ispName">FiberNet Pro 1000</h3>
+                            <p>Expected: <span id="expectedSpeed">1000</span> Mbps | 
+                               Actual: <span id="actualPercent">0</span>%</p>
+                            <div class="performance-bar">
+                                <div class="performance-fill" id="performanceFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="customIsp" placeholder="Enter ISP Name" value="FiberNet Pro">
+                        <input type="number" id="planSpeed" placeholder="Plan Speed (Mbps)" value="1000">
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <!-- Server Selection -->
+                <div class="card">
+                    <div class="card-title">🌍 Server Location</div>
+                    <div class="server-list" id="serverList">
+                        <!-- Servers will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Test History -->
+                <div class="card" style="margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="card-title" style="margin: 0;">📁 Test History</div>
+                        <button class="btn-icon" onclick="clearHistory()" style="width: 36px; height: 36px;" title="Clear All">🗑️</button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <!-- History items will be populated by JS -->
+                    </div>
+                    <button class="share-btn secondary" style="width: 100%; margin-top: 15px;" onclick="exportHistory()">
+                        📥 Export All History
+                    </button>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-title">📈 Quick Stats</div>
+                    <div style="display: grid; gap: 15px;">
+                        <div style="display: flex; justify-content: space-between; padding: 15px; background: var(--bg); border-radius: 12px;">
+                            <span style="color: var(--text-light);">Tests Run</span>
+                            <strong id="totalTests">0</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 15px; background: var(--bg); border-radius: 12px;">
+                            <span style="color: var(--text-light);">Avg Download</span>
+                            <strong id="avgDownload">--</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 15px; background: var(--bg); border-radius: 12px;">
+                            <span style="color: var(--text-light);">Best Server</span>
+                            <strong id="bestServer">--</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IP Display -->
+    <div class="ip-display">
+        IP: <strong id="ipDisplay">192.168.1.XXX</strong> | 
+        MAC: <strong id="macDisplay">XX:XX:XX:XX:XX:XX</strong>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION & STATE ====================
+        const state = {
+            isTesting: false,
+            currentPhase: 'idle',
+            selectedServer: null,
+            soundEnabled: true,
+            darkMode: false,
+            downloadSpeed: 0,
+            uploadSpeed: 0,
+            ping: 0,
+            jitter: 0,
+            testHistory: [],
+            graphData: [],
+            animationId: null,
+            testStartTime: null,
+            phaseStartTime: null,
+            currentSpeed: 0,
+            targetSpeed: 0,
+            speedHistory: [],
+            packetLossCount: 0
+        };
+
+        const config = {
+            minSpeed: 50,
+            maxSpeed: 1000,
+            minPing: 1,
+            maxPing: 50,
+            testDuration: 15,
+            randomMode: true,
+            unstableMode: false,
+            packetLoss: false,
+            packetLossRate: 0,
+            weatherImpact: false,
+            peakHours: false,
+            networkMode: 'fiber',
+            ispName: 'FiberNet Pro',
+            planSpeed: 1000
+        };
+
+        const networkPresets = {
+            fiber: { min: 500, max: 2000, pingMin: 1, pingMax: 10 },
+            '5g': { min: 100, max: 1000, pingMin: 5, pingMax: 30 },
+            '4g': { min: 20, max: 150, pingMin: 20, pingMax: 80 },
+            '3g': { min: 1, max: 20, pingMin: 100, pingMax: 300 },
+            satellite: { min: 5, max: 50, pingMin: 400, pingMax: 800 }
+        };
+
+        const customPresets = {
+            gaming: { 
+                name: 'Gaming Mode',
+                minSpeed: 50, maxSpeed: 200, 
+                minPing: 5, maxPing: 20,
+                unstable: false, packetLoss: false 
+            },
+            streaming: { 
+                name: 'Streaming Mode',
+                minSpeed: 25, maxSpeed: 100, 
+                minPing: 10, maxPing: 50,
+                unstable: false, packetLoss: false 
+            },
+            slow: { 
+                name: 'Slow Network',
+                minSpeed: 1, maxSpeed: 10, 
+                minPing: 100, maxPing: 500,
+                unstable: true, packetLoss: true, packetLossRate: 5 
+            },
+            enterprise: { 
+                name: 'Enterprise',
+                minSpeed: 1000, maxSpeed: 10000, 
+                minPing: 1, maxPing: 5,
+                unstable: false, packetLoss: false 
+            }
+        };
+
+        const servers = [
+            { id: 1, name: 'Manila, Philippines', provider: 'PLDT', flag: '🇵🇭', distance: 5, load: 45 },
+            { id: 2, name: 'Cebu, Philippines', provider: 'Globe', flag: '🇵🇭', distance: 350, load: 62 },
+            { id: 3, name: 'Singapore', provider: 'Singtel', flag: '🇸🇬', distance: 2400, load: 38 },
+            { id: 4, name: 'Tokyo, Japan', provider: 'NTT', flag: '🇯🇵', distance: 3000, load: 55 },
+            { id: 5, name: 'Los Angeles, USA', provider: 'AT&T', flag: '🇺🇸', distance: 12000, load: 72 },
+            { id: 6, name: 'London, UK', provider: 'BT', flag: '🇬🇧', distance: 11000, load: 48 },
+            { id: 7, name: 'Sydney, Australia', provider: 'Telstra', flag: '🇦🇺', distance: 6000, load: 60 },
+            { id: 8, name: 'Davao, Philippines', provider: 'Converge', flag: '🇵🇭', distance: 960, load: 35 }
+        ];
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            createParticles();
+            loadSettings();
+            renderServers();
+            renderHistory();
+            updateStats();
+            initGraph();
+            randomizeIP();
+            
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        function initializeApp() {
+            // Select best server (lowest load)
+            const bestServer = servers.reduce((prev, curr) => 
+                prev.load < curr.load ? prev : curr
+            );
+            selectServer(bestServer.id);
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        function setupEventListeners() {
+            // Network mode tags
+            document.querySelectorAll('.network-tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    document.querySelectorAll('.network-tag').forEach(t => t.classList.remove('active'));
+                    tag.classList.add('active');
+                    config.networkMode = tag.dataset.mode;
+                    applyNetworkPreset(config.networkMode);
+                });
+            });
+
+            // Range sliders
+            document.getElementById('speedRange').addEventListener('input', (e) => {
+                config.maxSpeed = parseInt(e.target.value);
+                document.getElementById('maxSpeed').value = config.maxSpeed;
+            });
+
+            document.getElementById('testDuration').addEventListener('input', (e) => {
+                config.testDuration = parseInt(e.target.value);
+                document.getElementById('durationValue').textContent = config.testDuration;
+            });
+
+            document.getElementById('packetLossRate').addEventListener('input', (e) => {
+                config.packetLossRate = parseInt(e.target.value);
+                document.getElementById('packetLossValue').textContent = config.packetLossRate;
+            });
+
+            // Input fields
+            ['minSpeed', 'maxSpeed', 'minPing', 'maxPing'].forEach(id => {
+                document.getElementById(id).addEventListener('change', (e) => {
+                    config[id.replace(/([A-Z])/g, '_$1').toLowerCase()] = parseInt(e.target.value);
+                });
+            });
+
+            // ISP inputs
+            document.getElementById('customIsp').addEventListener('change', (e) => {
+                config.ispName = e.target.value;
+                document.getElementById('ispName').textContent = config.ispName + ' ' + config.planSpeed;
+            });
+
+            document.getElementById('planSpeed').addEventListener('change', (e) => {
+                config.planSpeed = parseInt(e.target.value);
+                document.getElementById('ispName').textContent = config.ispName + ' ' + config.planSpeed;
+                document.getElementById('expectedSpeed').textContent = config.planSpeed;
+            });
+        }
+
+        // ==================== SPEED TEST ENGINE ====================
+        async function toggleTest() {
+            if (state.isTesting) {
+                stopTest();
+            } else {
+                startTest();
+            }
+        }
+
+        async function startTest() {
+            state.isTesting = true;
+            state.testStartTime = Date.now();
+            state.speedHistory = [];
+            state.graphData = [];
+            state.packetLossCount = 0;
+            
+            updateUIState('testing');
+            
+            // Reset values
+            state.downloadSpeed = 0;
+            state.uploadSpeed = 0;
+            state.ping = 0;
+            state.jitter = 0;
+            
+            // Test phases
+            await runPhase('connecting', 2000);
+            await runPhase('ping', 3000);
+            await runPhase('download', config.testDuration * 1000);
+            await runPhase('upload', config.testDuration * 1000);
+            await runPhase('complete', 1000);
+            
+            finishTest();
+        }
+
+        function stopTest() {
+            state.isTesting = false;
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+            }
+            updateUIState('idle');
+            showAlert('Test Stopped', 'The speed test was cancelled.', 'warning');
+        }
+
+        async function runPhase(phase, duration) {
+            if (!state.isTesting) return;
+            
+            state.currentPhase = phase;
+            state.phaseStartTime = Date.now();
+            updatePhaseDisplay(phase);
+            
+            const startTime = Date.now();
+            
+            return new Promise(resolve => {
+                const run = () => {
+                    if (!state.isTesting) {
+                        resolve();
+                        return;
+                    }
+                    
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Calculate simulated values based on phase
+                    switch(phase) {
+                        case 'ping':
+                            simulatePing();
+                            break;
+                        case 'download':
+                            simulateDownload(progress);
+                            break;
+                        case 'upload':
+                            simulateUpload(progress);
+                            break;
+                    }
+                    
+                    // Update displays
+                    updateDisplays();
+                    updateGraph();
+                    
+                    if (progress < 1 && state.isTesting) {
+                        state.animationId = requestAnimationFrame(run);
+                    } else {
+                        resolve();
+                    }
+                };
+                
+                run();
+            });
+        }
+
+        function simulatePing() {
+            const basePing = randomRange(config.minPing, config.maxPing);
+            const variation = config.unstableMode ? randomRange(-10, 10) : randomRange(-2, 2);
+            state.ping = Math.max(1, basePing + variation);
+            state.jitter = Math.abs(variation);
+            
+            // Random ping spike
+            if (config.unstableMode && Math.random() < 0.1) {
+                state.ping *= 2;
+                if (Math.random() < 0.3) {
+                    showAlert('Ping Spike Detected', `Latency jumped to ${state.ping.toFixed(0)}ms`, 'error');
+                }
+            }
+        }
+
+        function simulateDownload(progress) {
+            const target = calculateTargetSpeed();
+            
+            // Apply curve: slow start, peak, then stable
+            let curveMultiplier = 1;
+            if (progress < 0.2) {
+                curveMultiplier = progress * 5; // Ramp up
+            } else if (progress > 0.8) {
+                curveMultiplier = 1 - (progress - 0.8) * 2; // Ramp down slightly
+            }
+            
+            // Add fluctuation
+            const fluctuation = config.unstableMode ? 
+                randomRange(-0.3, 0.3) : randomRange(-0.05, 0.05);
+            
+            let speed = target * curveMultiplier * (1 + fluctuation);
+            
+            // Apply network condition effects
+            speed = applyNetworkEffects(speed);
+            
+            // Smooth transition
+            state.currentSpeed += (speed - state.currentSpeed) * 0.1;
+            state.downloadSpeed = state.currentSpeed;
+            
+            // Record for history
+            state.speedHistory.push(state.currentSpeed);
+            
+            // Packet loss simulation
+            if (config.packetLoss && Math.random() * 100 < config.packetLossRate) {
+                state.packetLossCount++;
+                state.currentSpeed *= 0.5;
+                if (Math.random() < 0.2) {
+                    showAlert('Packet Loss', 'Connection unstable - packets dropped', 'error');
+                }
+            }
+        }
+
+        function simulateUpload(progress) {
+            // Upload is typically 10-30% of download
+            const uploadRatio = randomRange(0.1, 0.3);
+            const target = state.downloadSpeed * uploadRatio;
+            
+            const fluctuation = randomRange(-0.1, 0.1);
+            state.uploadSpeed = target * (1 + fluctuation);
+            state.currentSpeed = state.uploadSpeed;
+        }
+
+        function calculateTargetSpeed() {
+            if (!config.randomMode) {
+                return (config.minSpeed + config.maxSpeed) / 2;
+            }
+            
+            let speed = randomRange(config.minSpeed, config.maxSpeed);
+            
+            // Peak hours throttling
+            if (config.peakHours) {
+                speed *= randomRange(0.3, 0.7);
+            }
+            
+            return speed;
+        }
+
+        function applyNetworkEffects(speed) {
+            // Weather impact
+            if (config.weatherImpact) {
+                speed *= randomRange(0.6, 0.9);
+            }
+            
+            // Server distance factor
+            if (state.selectedServer) {
+                const distanceFactor = 1 - (state.selectedServer.distance / 20000);
+                speed *= (0.8 + distanceFactor * 0.2);
+            }
+            
+            // Server load impact
+            if (state.selectedServer && state.selectedServer.load > 70) {
+                speed *= (1 - (state.selectedServer.load - 70) / 100);
+            }
+            
+            return Math.max(0.1, speed);
+        }
+
+        function finishTest() {
+            state.isTesting = false;
+            state.currentPhase = 'complete';
+            updateUIState('complete');
+            
+            // Calculate final stats
+            const avgSpeed = state.speedHistory.reduce((a, b) => a + b, 0) / state.speedHistory.length;
+            const peakSpeed = Math.max(...state.speedHistory);
+            const stability = calculateStability();
+            
+            // Save to history
+            const result = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                server: state.selectedServer,
+                ping: state.ping.toFixed(1),
+                download: state.downloadSpeed.toFixed(2),
+                upload: state.uploadSpeed.toFixed(2),
+                jitter: state.jitter.toFixed(1),
+                packetLoss: state.packetLossCount,
+                avgSpeed: avgSpeed.toFixed(2),
+                peakSpeed: peakSpeed.toFixed(2),
+                stability: stability
+            };
+            
+            state.testHistory.unshift(result);
+            saveHistory();
+            renderHistory();
+            updateStats();
+            
+            // Show results
+            showResults(result, avgSpeed, peakSpeed, stability);
+            
+            playSound('complete');
+        }
+
+        function calculateStability() {
+            if (state.speedHistory.length < 2) return 'N/A';
+            
+            const mean = state.speedHistory.reduce((a, b) => a + b) / state.speedHistory.length;
+            const variance = state.speedHistory.reduce((sum, val) => 
+                sum + Math.pow(val - mean, 2), 0) / state.speedHistory.length;
+            const stdDev = Math.sqrt(variance);
+            const cv = (stdDev / mean) * 100;
+            
+            if (cv < 5) return 'Excellent';
+            if (cv < 15) return 'Good';
+            if (cv < 30) return 'Fair';
+            return 'Poor';
+        }
+
+        // ==================== UI UPDATES ====================
+        function updateUIState(status) {
+            const btn = document.getElementById('mainButton');
+            const summary = document.getElementById('resultSummary');
+            
+            if (status === 'testing') {
+                btn.classList.add('testing');
+                btn.innerHTML = '<span class="loader"></span>';
+                summary.classList.remove('show');
+            } else if (status === 'complete') {
+                btn.classList.remove('testing');
+                btn.textContent = 'AGAIN';
+            } else {
+                btn.classList.remove('testing');
+                btn.textContent = 'GO';
+            }
+        }
+
+        function updatePhaseDisplay(phase) {
+            const phases = {
+                idle: 'Ready to test',
+                connecting: 'Connecting to server...',
+                ping: 'Testing ping...',
+                download: 'Testing download speed...',
+                upload: 'Testing upload speed...',
+                complete: 'Test complete!'
+            };
+            
+            document.getElementById('testPhase').innerHTML = 
+                `<span class="phase-indicator"></span>${phases[phase]}`;
+        }
+
+        function updateDisplays() {
+            // Update gauge
+            const maxGauge = Math.max(config.maxSpeed, state.currentSpeed);
+            const percentage = (state.currentSpeed / maxGauge) * 100;
+            const angle = (percentage / 100) * 180 - 90;
+            
+            document.getElementById('needle').style.transform = 
+                `translateX(-50%) rotate(${angle}deg)`;
+            document.getElementById('gaugeFill').style.setProperty('--fill-angle', `${percentage * 1.8}deg`);
+            
+            // Update speed value
+            const displaySpeed = state.currentPhase === 'upload' ? state.uploadSpeed : 
+                                state.currentPhase === 'download' ? state.downloadSpeed : 0;
+            
+            document.getElementById('speedValue').textContent = displaySpeed.toFixed(1);
+            document.getElementById('speedLabel').textContent = 
+                state.currentPhase === 'upload' ? 'Upload' : 
+                state.currentPhase === 'download' ? 'Download' : 'Speed';
+            
+            // Update units
+            const unit = displaySpeed >= 1000 ? 'Gbps' : 'Mbps';
+            const displayValue = displaySpeed >= 1000 ? (displaySpeed / 1000).toFixed(2) : displaySpeed.toFixed(1);
+            document.getElementById('speedValue').textContent = displayValue;
+            document.getElementById('speedUnit').textContent = unit;
+            
+            // Update stats
+            document.getElementById('pingValue').textContent = state.ping > 0 ? state.ping.toFixed(1) : '--';
+            document.getElementById('downloadValue').textContent = state.downloadSpeed > 0 ? 
+                state.downloadSpeed.toFixed(1) : '--';
+            document.getElementById('uploadValue').textContent = state.uploadSpeed > 0 ? 
+                state.uploadSpeed.toFixed(1) : '--';
+        }
+
+        function showResults(result, avgSpeed, peakSpeed, stability) {
+            document.getElementById('peakSpeed').textContent = peakSpeed.toFixed(1);
+            document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(1);
+            document.getElementById('stabilityRating').textContent = stability;
+            
+            // Performance rating
+            const performancePct = (result.download / config.planSpeed * 100).toFixed(0);
+            document.getElementById('performancePercent').textContent = performancePct + '%';
+            document.getElementById('actualPercent').textContent = performancePct;
+            document.getElementById('performanceFill').style.width = Math.min(performancePct, 100) + '%';
+            
+            // Rating
+            const ratingEl = document.getElementById('ratingText');
+            const emojiEl = document.getElementById('ratingEmoji');
+            
+            if (performancePct >= 90) {
+                ratingEl.textContent = 'Excellent!';
+                ratingEl.className = 'rating-text rating excellent';
+                emojiEl.textContent = '🚀';
+            } else if (performancePct >= 70) {
+                ratingEl.textContent = 'Good';
+                ratingEl.className = 'rating-text rating good';
+                emojiEl.textContent = '👍';
+            } else {
+                ratingEl.textContent = 'Poor';
+                ratingEl.className = 'rating-text rating poor';
+                emojiEl.textContent = '⚠️';
+            }
+            
+            document.getElementById('resultSummary').classList.add('show');
+        }
+
+        // ==================== GRAPH ====================
+        function initGraph() {
+            const canvas = document.getElementById('speedGraph');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            const resize = () => {
+                canvas.width = canvas.offsetWidth * 2;
+                canvas.height = canvas.offsetHeight * 2;
+                ctx.scale(2, 2);
+            };
+            resize();
+            window.addEventListener('resize', resize);
+            
+            drawGraph();
+        }
+
+        function updateGraph() {
+            if (state.currentPhase === 'download' || state.currentPhase === 'upload') {
+                state.graphData.push({
+                    phase: state.currentPhase,
+                    speed: state.currentSpeed,
+                    time: Date.now()
+                });
+                
+                // Keep last 100 points
+                if (state.graphData.length > 100) {
+                    state.graphData.shift();
+                }
+            }
+            
+            drawGraph();
+        }
+
+        function drawGraph() {
+            const canvas = document.getElementById('speedGraph');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            if (state.graphData.length < 2) return;
+            
+            const maxSpeed = Math.max(...state.graphData.map(d => d.speed), 100);
+            const padding = 20;
+            const graphWidth = width - padding * 2;
+            const graphHeight = height - padding * 2;
+            
+            // Draw grid
+            ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border');
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (graphHeight / 4) * i;
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+            }
+            ctx.stroke();
+            
+            // Draw line
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            state.graphData.forEach((point, i) => {
+                const x = padding + (i / (state.graphData.length - 1)) * graphWidth;
+                const y = padding + graphHeight - (point.speed / maxSpeed) * graphHeight;
+                
+                // Color based on phase
+                const color = point.phase === 'download' ? '#00c853' : '#2979ff';
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            // Gradient stroke
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            gradient.addColorStop(0, '#00c853');
+            gradient.addColorStop(0.5, '#2979ff');
+            gradient.addColorStop(1, '#00c853');
+            ctx.strokeStyle = gradient;
+            ctx.stroke();
+            
+            // Fill area
+            ctx.lineTo(width - padding, height - padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 200, 83, 0.1)';
+            ctx.fill();
+        }
+
+        // ==================== SERVERS ====================
+        function renderServers() {
+            const container = document.getElementById('serverList');
+            container.innerHTML = '';
+            
+            servers.forEach(server => {
+                const div = document.createElement('div');
+                div.className = `server-item ${state.selectedServer?.id === server.id ? 'active' : ''}`;
+                div.onclick = () => selectServer(server.id);
+                
+                const loadClass = server.load < 50 ? 'low' : server.load < 75 ? 'medium' : 'high';
+                
+                div.innerHTML = `
+                    <div class="server-flag">${server.flag}</div>
+                    <div class="server-info">
+                        <div class="server-name">${server.name}</div>
+                        <div class="server-meta">${server.provider} • ${server.distance}km</div>
+                    </div>
+                    <div class="server-load ${loadClass}">${server.load}%</div>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        function selectServer(id) {
+            state.selectedServer = servers.find(s => s.id === id);
+            renderServers();
+            playSound('click');
+        }
+
+        // ==================== HISTORY ====================
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+            
+            if (state.testHistory.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 40px;">No tests yet</p>';
+                return;
+            }
+            
+            state.testHistory.slice(0, 10).forEach(test => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <div class="history-icon">📊</div>
+                    <div class="history-info">
+                        <div class="history-date">${test.date}</div>
+                        <div class="history-server">${test.server.name}</div>
+                    </div>
+                    <div class="history-stats">
+                        <div class="history-speed">↓${test.download}</div>
+                        <div class="history-meta">↑${test.upload} • ${test.ping}ms</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteTest(${test.id})">✕</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function deleteTest(id) {
+            state.testHistory = state.testHistory.filter(t => t.id !== id);
+            saveHistory();
+            renderHistory();
+            updateStats();
+        }
+
+        function clearHistory() {
+            if (confirm('Clear all test history?')) {
+                state.testHistory = [];
+                saveHistory();
+                renderHistory();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalTests').textContent = state.testHistory.length;
+            
+            if (state.testHistory.length > 0) {
+                const avg = state.testHistory.reduce((sum, t) => sum + parseFloat(t.download), 0) / state.testHistory.length;
+                document.getElementById('avgDownload').textContent = avg.toFixed(1) + ' Mbps';
+                
+                // Find best server
+                const serverScores = {};
+                state.testHistory.forEach(test => {
+                    if (!serverScores[test.server.name]) {
+                        serverScores[test.server.name] = { total: 0, count: 0 };
+                    }
+                    serverScores[test.server.name].total += parseFloat(test.download);
+                    serverScores[test.server.name].count++;
+                });
+                
+                let bestServer = '';
+                let bestAvg = 0;
+                Object.entries(serverScores).forEach(([name, data]) => {
+                    const avg = data.total / data.count;
+                    if (avg > bestAvg) {
+                        bestAvg = avg;
+                        bestServer = name;
+                    }
+                });
+                
+                document.getElementById('bestServer').textContent = bestServer;
+            }
+        }
+
+        // ==================== CONTROL PANEL ====================
+        function openControlPanel() {
+            document.getElementById('controlPanel').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+
+        function closeControlPanel() {
+            document.getElementById('controlPanel').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            saveSettings();
+        }
+
+        function toggleSwitch(el) {
+            el.classList.toggle('active');
+            const id = el.id;
+            config[id] = el.classList.contains('active');
+            
+            // Special handling
+            if (id === 'packetLoss') {
+                document.getElementById('packetLossRate').disabled = !config.packetLoss;
+            }
+        }
+
+        function loadPreset(name) {
+            const preset = customPresets[name];
+            if (!preset) return;
+            
+            // Update UI
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Apply settings
+            config.minSpeed = preset.minSpeed;
+            config.maxSpeed = preset.maxSpeed;
+            config.minPing = preset.minPing;
+            config.maxPing = preset.maxPing;
+            config.unstableMode = preset.unstable;
+            config.packetLoss = preset.packetLoss;
+            config.packetLossRate = preset.packetLossRate || 0;
+            
+            // Update inputs
+            document.getElementById('minSpeed').value = preset.minSpeed;
+            document.getElementById('maxSpeed').value = preset.maxSpeed;
+            document.getElementById('minPing').value = preset.minPing;
+            document.getElementById('maxPing').value = preset.maxPing;
+            document.getElementById('unstableMode').classList.toggle('active', preset.unstable);
+            document.getElementById('packetLoss').classList.toggle('active', preset.packetLoss);
+            document.getElementById('packetLossRate').value = preset.packetLossRate || 0;
+            document.getElementById('packetLossValue').textContent = preset.packetLossRate || 0;
+            
+            showAlert('Preset Loaded', `${preset.name} settings applied`, 'success');
+        }
+
+        function applyNetworkPreset(mode) {
+            const preset = networkPresets[mode];
+            if (!preset) return;
+            
+            config.minSpeed = preset.min;
+            config.maxSpeed = preset.max;
+            config.minPing = preset.pingMin;
+            config.maxPing = preset.pingMax;
+            
+            document.getElementById('minSpeed').value = preset.min;
+            document.getElementById('maxSpeed').value = preset.max;
+            document.getElementById('minPing').value = preset.pingMin;
+            document.getElementById('maxPing').value = preset.pingMax;
+            document.getElementById('speedRange').value = preset.max;
+        }
+
+        function saveCustomPreset() {
+            const name = prompt('Enter preset name:');
+            if (!name) return;
+            
+            const custom = {
+                name: name,
+                minSpeed: config.minSpeed,
+                maxSpeed: config.maxSpeed,
+                minPing: config.minPing,
+                maxPing: config.maxPing,
+                unstable: config.unstableMode,
+                packetLoss: config.packetLoss,
+                packetLossRate: config.packetLossRate
+            };
+            
+            // Save to localStorage
+            const customs = JSON.parse(localStorage.getItem('customPresets') || '[]');
+            customs.push(custom);
+            localStorage.setItem('customPresets', JSON.stringify(customs));
+            
+            showAlert('Preset Saved', `"${name}" has been saved`, 'success');
+        }
+
+        // ==================== UTILITIES ====================
+        function randomRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function showAlert(title, message, type = 'warning') {
+            const alert = document.getElementById('alert');
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-message').textContent = message;
+            
+            alert.className = `alert ${type} show`;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 3000);
+        }
+
+        function toggleTheme() {
+            state.darkMode = !state.darkMode;
+            document.body.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+            localStorage.setItem('darkMode', state.darkMode);
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            showAlert('Sound ' + (state.soundEnabled ? 'Enabled' : 'Disabled'), 
+                     'Sound effects are now ' + (state.soundEnabled ? 'on' : 'off'), 'success');
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            
+            // Simple beep using Web Audio API
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            switch(type) {
+                case 'click':
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.05);
+                    break;
+                case 'complete':
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.value = 0.2;
+                    oscillator.start();
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                    break;
+            }
+        }
+
+        function randomizeIP() {
+            const ip = `192.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+            const mac = Array(6).fill(0).map(() => 
+                Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()
+            ).join(':');
+            
+            document.getElementById('ipDisplay').textContent = ip;
+            document.getElementById('macDisplay').textContent = mac;
+        }
+
+        // ==================== EXPORT & SHARE ====================
+        function copyResults() {
+            const latest = state.testHistory[0];
+            if (!latest) return;
+            
+            const text = `SpeedTest Pro Results:
+📅 ${latest.date}
+🌍 ${latest.server.name} (${latest.server.provider})
+⚡ Download: ${latest.download} Mbps
+⬆️ Upload: ${latest.upload} Mbps
+📶 Ping: ${latest.ping} ms
+📊 Jitter: ${latest.jitter} ms
+🎯 Stability: ${latest.stability}`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Copied!', 'Results copied to clipboard', 'success');
+            });
+        }
+
+        function exportResult() {
+            const latest = state.testHistory[0];
+            if (!latest) return;
+            
+            const dataStr = JSON.stringify(latest, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `speedtest-result-${latest.id}.json`;
+            link.click();
+        }
+
+        function exportHistory() {
+            const dataStr = JSON.stringify(state.testHistory, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `speedtest-history-${Date.now()}.json`;
+            link.click();
+        }
+
+        // ==================== LOCAL STORAGE ====================
+        function saveSettings() {
+            localStorage.setItem('speedTestSettings', JSON.stringify({
+                minSpeed: config.minSpeed,
+                maxSpeed: config.maxSpeed,
+                minPing: config.minPing,
+                maxPing: config.maxPing,
+                testDuration: config.testDuration,
+                randomMode: config.randomMode,
+                unstableMode: config.unstableMode,
+                packetLoss: config.packetLoss,
+                packetLossRate: config.packetLossRate,
+                weatherImpact: config.weatherImpact,
+                peakHours: config.peakHours,
+                networkMode: config.networkMode,
+                ispName: config.ispName,
+                planSpeed: config.planSpeed
+            }));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('speedTestSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                Object.assign(config, settings);
+                
+                // Update UI
+                document.getElementById('minSpeed').value = config.minSpeed;
+                document.getElementById('maxSpeed').value = config.maxSpeed;
+                document.getElementById('minPing').value = config.minPing;
+                document.getElementById('maxPing').value = config.maxPing;
+                document.getElementById('testDuration').value = config.testDuration;
+                document.getElementById('durationValue').textContent = config.testDuration;
+                document.getElementById('randomMode').classList.toggle('active', config.randomMode);
+                document.getElementById('unstableMode').classList.toggle('active', config.unstableMode);
+                document.getElementById('packetLoss').classList.toggle('active', config.packetLoss);
+                document.getElementById('packetLossRate').value = config.packetLossRate;
+                document.getElementById('packetLossValue').textContent = config.packetLossRate;
+                document.getElementById('weatherImpact').classList.toggle('active', config.weatherImpact);
+                document.getElementById('peakHours').classList.toggle('active', config.peakHours);
+                document.getElementById('customIsp').value = config.ispName;
+                document.getElementById('planSpeed').value = config.planSpeed;
+                document.getElementById('ispName').textContent = config.ispName + ' ' + config.planSpeed;
+                document.getElementById('expectedSpeed').textContent = config.planSpeed;
+                
+                // Network mode
+                document.querySelectorAll('.network-tag').forEach(tag => {
+                    tag.classList.toggle('active', tag.dataset.mode === config.networkMode);
+                });
+            }
+            
+            // Load dark mode
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            if (darkMode) {
+                state.darkMode = true;
+                document.body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        function saveHistory() {
+            localStorage.setItem('speedTestHistory', JSON.stringify(state.testHistory));
+        }
+
+        function loadHistory() {
+            const saved = localStorage.getItem('speedTestHistory');
+            if (saved) {
+                state.testHistory = JSON.parse(saved);
+                renderHistory();
+                updateStats();
+            }
+        }
+
+        // Load history on init
+        loadHistory();
+    </script>
+</body>
+</html>
